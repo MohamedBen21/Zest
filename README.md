@@ -1,0 +1,137 @@
+# Zest
+
+A free, **100 % offline** file converter and toolbox for Windows, made by Mohamed. Dark theme, Electron + JavaScript.
+Everything runs locally: FFmpeg, libvips (sharp), MuPDF and pdf-lib are bundled. The app blocks every network request, so no file ever leaves the PC.
+
+![Convert](docs/convert.png)
+
+## Features
+- A big drag-and-drop zone that takes many files and whole folders. The file type is detected automatically, and only valid target formats are shown as buttons.
+- **Batch queue** with per-job progress, cancel/retry, *Show* / *Open*, and *Open folder*. Two jobs run in parallel by default.
+- Output goes **next to the original** or to a **chosen folder**. Existing files are never overwritten (`name (1).ext`).
+- **Image Studio** has a live preview with the real output size, and a press-and-hold *Original* comparison. It covers:
+  - Resize by exact pixels or percent, with keep-aspect, fit, cover and pad options.
+  - Drag-to-crop with aspect presets.
+  - Rotate 90° or any free angle, and flip horizontally or vertically.
+  - Brightness, contrast, saturation, hue, blur, sharpen, grayscale and invert.
+  - DPI, a quality slider, a **target file size (KB)**, and metadata stripping.
+  - Offline background removal (flood fill from the edges, for plain backgrounds).
+  - Batch apply to all images. The crop is stored as fractions, so it fits images of any size.
+- **Video Studio** has a player with a trim timeline (set start/end at the playhead) and drag-to-crop on the video. You can preview your edits on any frame. It covers:
+  - Resolution presets from 240p to 4K, or a custom size.
+  - FPS, CRF, a bitrate, or a **target size in MB** (2-pass).
+  - Rotate/flip, colour adjustments, mute, loudness normalization and speed.
+  - Output to GIF/WebP, or to audio formats.
+  - Batch apply, with a separate trim for each file.
+- **Make flipbook** (new in 1.1): PDFs, images, documents (md/html/txt/docx) and e-books → a self-contained **offline HTML flipbook**. Output is a single `.html` file or a folder with `index.html` + `pages/`. It has a page-flip animation (click or drag the corners), a thumbnails sidebar, zoom (Ctrl+wheel, double-click, +/−) with panning, single or double page view, full screen, keyboard navigation and right-to-left books. Open it by double-clicking in any browser; no internet is needed.
+  The flip engine is `src/flipbook/flip-engine.{js,css}`, with no dependencies, and is meant to be shared with Zest Reader.
+  Finished flipbooks have an **Open in Zest Reader** button. It works when Reader is found as an installed exe (`%LOCALAPPDATA%\Programs\Zest Reader\Zest Reader.exe`, Program Files, or `ZEST_READER_PATH`), or as a registered `zest-reader://` (or `reader://`) protocol. The protocol handoff is `zest-reader://open?path=<file>`.
+  **Edit PDF** (in the wheel's PDF tools and on the Tools tab) opens Zest Reader 1.1.0+ in its PDF editor, via `--edit <file>` or `zest-reader://edit?path=<file>`.
+- **Tools tab** with 31 batch tools (listed below).
+- English UI plus **Arabic UI (RTL)**. Light theme.
+
+![Image Studio](docs/image.png)
+
+## Supported conversions
+There are 961 input→output pairs, or 875 unique ones when aliases such as jpeg/jpg are counted once.
+
+| Kind | Inputs | Outputs |
+|---|---|---|
+| Images | png, jpg, jpeg, jfif, webp, avif, tif, tiff, gif, bmp, heic, heif, svg, ico, tga, jp2, ppm, pgm, pcx | jpg, webp, avif, tiff, gif, bmp, ico, pdf, png, mp4, webm, flipbook |
+| Videos | mp4, mov, mkv, avi, webm, flv, wmv, m4v, mpg, mpeg, 3gp, ts, mts, m2ts, ogv, vob, f4v, asf | mov, mkv, avi, webm, flv, wmv, m4v, mpg, ts, ogv, 3gp, gif, webp, mp3, wav, aac, m4a, flac, ogg, opus, wma, aiff, ac3, mp2, amr, png, jpg, mp4 |
+| Audio | mp3, wav, aac, m4a, flac, ogg, oga, opus, wma, aiff, aif, amr, ac3, mka, caf, m4b, wv, mp2, au | wav, aac, m4a, flac, ogg, opus, wma, aiff, ac3, mp2, amr, mp3 |
+| PDF | pdf | png, jpg, webp, tiff, txt, html, flipbook |
+| E-books / XPS | epub, xps, oxps, cbz, fb2, mobi | pdf, png, jpg, txt, flipbook |
+| Documents | md, markdown, html, htm, txt, docx | html, pdf, txt, docx, md, flipbook |
+| Data | csv, tsv, json | json, tsv, html, csv |
+
+## Tools
+- 📖 **Make flipbook** — accepts pdf/image/doc/ebook (combines several files into one book)
+- 🗜️ **Compress image** — accepts image
+- 🎬 **Compress video** — accepts video
+- 🎧 **Compress audio** — accepts audio
+- 📉 **Compress PDF** — accepts pdf
+- ✂️ **Trim audio / video** — accepts video/audio
+- 📑 **Merge PDFs** — accepts pdf/image
+- 🎼 **Merge audio** — accepts audio/video
+- 🎞️ **Merge videos** — accepts video
+- 🖼️ **Images → PDF** — accepts image
+- 🔪 **Split PDF** — accepts pdf
+- 📄 **Extract PDF pages** — accepts pdf
+- 🔄 **Rotate PDF pages** — accepts pdf
+- 🧩 **PDF → images** — accepts pdf/ebook
+- 🔤 **PDF → text** — accepts pdf/ebook
+- 🔢 **Add page numbers** — accepts pdf
+- 🔒 **Password-protect PDF** — accepts pdf
+- 📐 **Resize image** — accepts image
+- ↻ **Rotate / flip image** — accepts image
+- 🪄 **Remove background** — accepts image
+- 🔃 **Rotate / flip video** — accepts video
+- 🎵 **Extract audio** — accepts video
+- 🌀 **Video → GIF** — accepts video
+- 🖥️ **Change resolution** — accepts video
+- 📶 **Change bitrate** — accepts video/audio
+- ⏱️ **Change frame rate** — accepts video
+- ⏩ **Change speed** — accepts video/audio
+- 🔇 **Mute video** — accepts video
+- 🔊 **Normalize / volume** — accepts audio/video
+- 📸 **Video thumbnail** — accepts video
+- 🧹 **Strip metadata** — accepts image/video/audio/pdf
+## Explorer wheel (v1.2)
+In File Explorer, right-click any supported file, a multi-selection or a folder and choose **Zest**. A round pie menu opens right at your mouse.
+
+| Categories | Convert → formats | Nested (Edit → Resize) | Arabic |
+|---|---|---|---|
+| ![](docs/wheel-1-inner.png) | ![](docs/wheel-2-convert.png) | ![](docs/wheel-3-nested.png) | ![](docs/wheel-5-arabic.png) |
+
+* **Inner ring**: only the categories that fit the selected files are shown. These are Convert, Compress, Edit/Studio, Flipbook, PDF tools, Audio/Video tools, Strip metadata and Open in Zest Reader.
+* **Outer rings**: hover a category, or click it, to expand its options. Examples:
+  * Convert → JPG / PNG / WebP / PDF … (long lists continue in a **More** ring)
+  * Compress → Low / Medium / Strong
+  * Edit → Resize → 50 % / 1920 px …
+* **Keyboard**: ← → move between slices, Enter opens or runs, Backspace goes back, 1–9 pick a slice directly, Esc closes.
+* **Multi-select and folders**: Explorer starts one process per file. Zest is single-instance and merges them into one wheel. A folder expands to the supported files inside it.
+* **Background jobs**: a small toast at the bottom right shows progress, with **Show in folder** and **Open** buttons. Your files are never overwritten; new names get " (n)".
+* **Ctrl+Alt+M**: opens the wheel for the files selected in the active Explorer window. This needs the tray helper, which starts with Windows by default; you can turn it off from the tray menu or with the 🎯 Wheel button.
+* **Floating bubble**: an optional small square icon that stays on top. Drop files on it to get the same wheel: the wheel always opens completely inside the screen, the bubble rides to the wheel's hub while it is open, and returns to where you put it when the wheel closes. Drag it to move it. By default it only shows on the **Desktop and in File Explorer windows** (Downloads, Pictures, Videos, Documents, ...) and fades away in browsers, games and other apps; the tray-menu option *Show the bubble only on the Desktop and in File Explorer* turns that off, and summoning it from the tray or with Ctrl+Alt+B keeps it for the app that is in front. It will not stay on top of a desktop file, folder or shortcut: it vibrates and glides back to where it was (Windows; it looks up the icon positions with a small background PowerShell helper that runs only while the bubble is shown). Hover it for the controls: **S / M / L** picks one of three fixed sizes (remembered), and the **–** corner button hides it (it slides back into the tray corner). Summon it from the tray: **click the tray icon** and the bubble slides out of the tray corner (click again to send it back; double-click opens the main window). **Ctrl+Alt+B** summons it right under your mouse. It runs on its own, with no main window: use the **Zest Bubble** Start-menu shortcut or `"Zest.exe" --bubble`.
+
+The installer registers everything per user. It writes `HKCU\Software\Classes\SystemFileAssociations\.<ext>\shell\Zest` for each of the 72 supported extensions, plus `Directory\shell\Zest`. The uninstaller removes those keys and the start-up entry.
+
+On Windows 11 the entry appears under **Show more options** (Shift+F10). A top-level Windows 11 menu entry would need a signed MSIX sparse package, so it is not included.
+
+Diagnostics: every wheel launch, show, focus, blur and hide is logged to `%APPDATA%\Zest\logs\wheel.log`.
+
+CLI: `"Zest.exe" --radial <files…>`, `--bubble`, `--background`, `--open-in-reader <file>`.
+
+## Install (Windows 10/11 x64)
+1. Download `Zest-Setup-<ver>-x64.exe` (installer), `Zest-Portable-<ver>-x64.exe` (no install), or the `.zip`, from Releases.
+2. The app is not code-signed, so Windows SmartScreen may say *"Windows protected your PC"*. Click **More info → Run anyway**.
+3. With the installer, pick a folder and finish. Shortcuts go to the Start menu and the desktop.
+4. Optional check: run `"Zest.exe" --self-test` for a quick built-in test of the converters.
+
+## Build
+```bash
+npm ci
+# put ffmpeg.exe + ffprobe.exe in vendor/ffmpeg-win/ (gyan.dev essentials build)
+# put the @img/sharp-win32-x64 package in vendor/sharp-win32-x64/
+.\build-windows.ps1   # one-click: installs deps, fetches FFmpeg + sharp, builds into dist\
+node test/run-tests.js                 # engine tests (uses system ffmpeg on Linux)
+```
+CI: `.github/workflows/build-windows.yml` runs on `windows-latest` and does the following:
+1. Runs the engine and wheel-model tests.
+2. Builds the app and runs the packaged smoke test and the wheel UI test, which produces screenshots.
+3. Installs it silently and checks the registry.
+4. Runs the exact Explorer command line for a single file, a 3-file multi-select and a folder.
+5. Installs the released Zest Reader and checks the Convert → Reader handoff.
+6. Uninstalls it and checks that the registry was cleaned.
+7. Publishes a Release for `v*` tags.
+
+## Known gaps
+- DOCX → PDF uses mammoth → HTML → Chromium PDF. Basic formatting carries over, but it is not a pixel-perfect Word layout. There is no Office/LibreOffice.
+- Background removal is a colour-key flood fill, not AI. It works well for solid or studio backgrounds only.
+- PDF *lossless* compression only re-optimizes streams. *Strong* compression rasterizes pages to images, so text is no longer selectable.
+- No RAW camera formats, PSD, or animated-image editing in Image Studio (only the first frame is edited).
+- Unsigned build, so SmartScreen shows a warning.
+- Windows 11: the wheel is under "Show more options". Ctrl+Alt+M works for File Explorer windows but not for files selected on the desktop itself. With several Explorer tabs, the first tab that has a selection wins.
+
+Licenses: FFmpeg (GPLv3 build from gyan.dev), MuPDF (AGPL), libvips (LGPL), pdf-lib (MIT), Electron (MIT). Free for personal use.
