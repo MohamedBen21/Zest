@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+      }
+      #b {
+        position: absolute;
+        inset: 0;
+        cursor: grab;
+        transition:
+          filter 0.15s,
+          opacity 0.15s;
+      }
+      #b img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        -webkit-user-drag: none;
+      }
+      #b:hover {
+        filter: brightness(1.12);
+      }
+      #b:active {
+        cursor: grabbing;
+      }
+      #b.deny {
+        outline: 3px solid #f0524f;
+        outline-offset: -3px;
+        border-radius: 14px;
+      }
+      #b.over {
+        outline: 3px solid #ff7a00;
+        outline-offset: -3px;
+        border-radius: 14px;
+      }
+      #min {
+        display: none;
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        border: 0;
+        border-radius: 3px;
+        background: rgba(0, 0, 0, 0.72);
+        color: #fff;
+        font:
+          700 13px/14px "Segoe UI",
+          sans-serif;
+        text-align: center;
+        cursor: pointer;
+      }
+      #min:hover {
+        background: #ff7a00;
+      }
+      #sz {
+        display: none;
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        bottom: 4px;
+        gap: 2px;
+      }
+      #sz button {
+        flex: 1;
+        height: 16px;
+        padding: 0;
+        border: 0;
+        border-radius: 3px;
+        background: #2c2c33;
+        box-shadow: 0 0 0 1px #45454f;
+        color: #fff;
+        font:
+          700 10px/16px "Segoe UI",
+          sans-serif;
+        cursor: pointer;
+      }
+      #sz button:hover {
+        background: #ff9a3d;
+      }
+      #sz button.on {
+        background: #ff7a00;
+      }
+      #b:hover #sz {
+        display: flex;
+      }
+      body.mini #sz {
+        display: none !important;
+      }
+      @keyframes pop {
+        from {
+          transform: scale(0.6);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      #b.pop {
+        animation: pop 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+      }
+      #b:hover #min {
+        display: block;
+      }
+      body.mini #min {
+        display: none !important;
+      }
+      body.mini #b {
+        opacity: 0.9;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="b">
+      <img src="icon.png" alt="" /><button
+        id="min"
+        title="Hide (click the tray icon or press Ctrl+Alt+B to bring it back)"
+      >
+        &#8211;
+      </button>
+      <div id="sz">
+        <button data-k="S" title="Small">S</button
+        ><button data-k="M" title="Medium">M</button
+        ><button data-k="L" title="Large">L</button>
+      </div>
+    </div>
+    <script src="strings.js"></script>
+    <script src="bubble.js"></script>
+  </body>
+</html>
