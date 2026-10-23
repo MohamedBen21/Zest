@@ -1,0 +1,491 @@
+"use strict";
+// Scripted test of the Explorer wheel (run inside Electron: ZEST_RADIAL_SCRIPT=test/radial-test.js).
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const { ipcMain, BrowserWindow, screen } = require("electron");
+module.exports = async ({ controller, app, E }) => {
+  const lines = [];
+  let passed = 0,
+    failed = 0;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ok = (n, c, x = "") => {
+    c ? passed++ : failed++;
+    lines.push(`${c ? "PASS" : "FAIL"}  ${n}${x ? "  — " + x : ""}`);
+  };
+  const step = async (n, fn) => {
+    if (process.env.ZEST_RADIAL_VERBOSE) console.log("STEP " + n);
+    try {
+      const r = await fn();
+      ok(n, r !== false && r != null, typeof r === "string" ? r : "");
+    } catch (e) {
+      ok(n, false, String((e && e.message) || e));
+    }
+  };
+  const until = async (fn, ms = 20000) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < ms) {
+      try {
+        const v = await fn();
+        if (v) return v;
+      } catch (_) {}
+      await sleep(100);
+    }
+    return null;
+  };
+  const shots =
+    process.env.ZEST_RADIAL_SHOTS || path.join(__dirname, "..", "docs");
+  fs.mkdirSync(shots, { recursive: true });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "zest-radial-"));
+  const sharp = require("sharp");
+  const mk = async (name, color) => {
+    const f = path.join(dir, name);
+    await sharp({
+      create: { width: 320, height: 200, channels: 3, background: color },
+    })
+      .jpeg()
+      .withMetadata({ exif: { IFD0: { Copyright: "secret" } } })
+      .toFile(f);
+    return f;
+  };
+  const jpg = await mk("photo one.jpg", "#ff7a00"),
+    jpg2 = await mk("photo two.jpg", "#2266dd"),
+    jpg3 = await mk("photo three.jpg", "#22aa55");
+  const pdf = await E.image.imagesToPdf([jpg, jpg2], { outputDir: dir });
+  const pdfFile = Array.isArray(pdf) ? pdf[0] : pdf;
+  const W = () => controller._windows();
+  const js = (code) => W().radial.webContents.executeJavaScript(code);
+  const shot = async (w, name) => {
+    const img = await w.webContents.capturePage();
+    fs.writeFileSync(path.join(shots, name), img.toPNG());
+  };
+  const waitJobs = async (ids) =>
+    until(
+      () =>
+        ids.every((id) => {
+          const j = controller._tracked.get(id);
+          return j && ["done", "error", "cancelled"].includes(j.status);
+        }),
+      120000,
+    );
+
+  await step("wheel opens for one image, centred at the cursor", async () => {
+    await controller.showRadial([jpg]);
+    const w = W().radial;
+    const b = w.getBounds();
+    const c = screen.getCursorScreenPoint();
+    const wa = screen.getDisplayNearestPoint(c).workArea;
+    const inside =
+      b.x >= wa.x &&
+      b.y >= wa.y &&
+      b.x + 720 <= wa.x + wa.width &&
+      b.y + 720 <= wa.y + wa.height;
+    return w.isVisible() && w.isAlwaysOnTop() && b.width === 720 && inside
+      ? `bounds ${JSON.stringify(b)} (fully inside the screen)`
+      : false;
+  });
+  await step("inner ring categories fit an image", async () => {
+    await sleep(300);
+    const ids = await js('__radial.state.items.map(i=>i.id).join(",")');
+    return [
+      "convert",
+      "compress",
+      "edit",
+      "flipbook",
+      "pdf",
+      "strip",
+      "reader",
+    ].every((k) => ids.split(",").includes(k)) && !ids.includes("av")
+      ? ids
+      : false;
+  });
+  await step(
+    "inner ring renders one slice per category",
+    async () =>
+      (await js('document.querySelectorAll(".r1 .sl").length')) ===
+      (await js("__radial.state.items.length")),
+  );
+  await shot(W().radial, "wheel-1-inner.png");
+  await step("hover Convert expands the outer ring with formats", async () => {
+    await js("__radial.hover(0,0)");
+    await sleep(250);
+    const n = await js('document.querySelectorAll(".r2 .sl").length');
+    const labels = await js(
+      '[...document.querySelectorAll(".r2 .sl text:not(.ic)")].map(t=>t.textContent).join(" ")',
+    );
+    return n >= 6 && /PNG/.test(labels) && /WEBP/.test(labels) ? labels : false;
+  });
+  await shot(W().radial, "wheel-2-convert.png");
+  await step("nested third ring (Edit → Resize)", async () => {
+    const ei = await js('__radial.state.items.findIndex(i=>i.id==="edit")');
+    await js(`__radial.hover(0,${ei})`);
+    await sleep(120);
+    await js("__radial.hover(1,0)");
+    await sleep(250);
+    const n = await js('document.querySelectorAll(".r3 .sl").length');
+    return n === 6;
+  });
+  await shot(W().radial, "wheel-3-nested.png");
+  await step(
+    "keyboard: arrows move, Enter expands, Escape goes back",
+    async () => {
+      const w = W().radial;
+      w.focus();
+      await js("__radial.hover(0,0)");
+      await sleep(80);
+      const key = async (k) => {
+        w.webContents.sendInputEvent({ type: "keyDown", keyCode: k });
+        w.webContents.sendInputEvent({ type: "keyUp", keyCode: k });
+        await sleep(120);
+      };
+      await key("Right");
+      const p1 = await js('__radial.path.join(",")');
+      await key("Return");
+      const p2 = await js('__radial.path.join(",")');
+      await key("Escape");
+      const p3 = await js('__radial.path.join(",")');
+      if (!(p1 === "1" && p2 === "1,0" && p3 === "1"))
+        throw new Error(`${p1} | ${p2} | ${p3}`);
+      return `${p1} → ${p2} → ${p3}`;
+    },
+  );
+  await step(
+    "resting cursor on a slice does not re-render or re-animate (v1.2.0 flicker regression)",
+    async () => {
+      await controller.showRadial([jpg]);
+      await sleep(400);
+      const w = W().radial;
+      w.webContents.sendInputEvent({ type: "mouseMove", x: 360, y: 250 });
+      await sleep(120);
+      w.webContents.sendInputEvent({ type: "mouseMove", x: 360, y: 253 });
+      await sleep(500);
+      const r0 = await js("__radial.renders");
+      await sleep(1500);
+      const r1 = await js("__radial.renders");
+      const still = await js('document.querySelectorAll(".ring.still").length');
+      if (r1 - r0 > 1) return false;
+      return `renders during 1.5 s of a resting cursor: ${r1 - r0}; rings not re-animated: ${still}`;
+    },
+  );
+  await step(
+    "showing again while visible is idempotent (no hide/show), late files merge in place",
+    async () => {
+      controller.hideRadial();
+      await sleep(200);
+      await controller.showRadial([jpg]);
+      await sleep(250);
+      const w = W().radial;
+      let hides = 0,
+        shows = 0;
+      const h = () => hides++,
+        s = () => shows++;
+      w.on("hide", h);
+      w.on("show", s);
+      const before = await js("__radial.renders");
+      await controller.showRadial([jpg]);
+      await sleep(150);
+      controller.collect([jpg2]);
+      await sleep(300);
+      const count = await js("__radial.state.count");
+      w.removeListener("hide", h);
+      w.removeListener("show", s);
+      if (hides || shows || !w.isVisible() || count !== 2)
+        throw new Error(
+          `hides=${hides} shows=${shows} visible=${w.isVisible()} count=${count}`,
+        );
+      return `hides=${hides} shows=${shows} count=${count} extra renders=${(await js("__radial.renders")) - before}`;
+    },
+  );
+  await step("wheel events are logged to the app-data log", async () => {
+    const f = controller._log.path();
+    const t = fs.readFileSync(f, "utf8");
+    const ok = /"event":"show"/.test(t) && /"event":"show-update"/.test(t);
+    controller.hideRadial();
+    await sleep(200);
+    await controller.showRadial([jpg]);
+    await sleep(300);
+    return ok ? f : false;
+  });
+  await step("Escape on the inner ring closes the wheel", async () => {
+    const w = W().radial;
+    w.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+    return !!(await until(() => !W().radial.isVisible(), 3000));
+  });
+  await step("Convert → PNG runs in the background with a toast", async () => {
+    await controller.showRadial([jpg]);
+    await sleep(300);
+    const res = new Promise((r) =>
+      ipcMain.once("radial:pick", (_e, d) => r(d)),
+    );
+    await js("__radial.hover(0,0)");
+    await sleep(100);
+    const idx = await js(
+      '__radial.state.items[0].children.findIndex(c=>c.id==="convert:png")',
+    );
+    await js(`__radial.activate(1,${idx})`);
+    const d = await res;
+    await until(() => controller._tracked.size > 0, 3000);
+    const ids = [...controller._tracked.keys()];
+    await waitJobs(ids);
+    const j = controller._tracked.get(ids[0]);
+    const t = await until(
+      () => W().toast && W().toast.isVisible() && W().toast,
+      5000,
+    );
+    if (
+      !(
+        d.id === "convert:png" &&
+        j.status === "done" &&
+        fs.existsSync(j.outputs[0]) &&
+        j.outputs[0].endsWith(".png") &&
+        t &&
+        t.isVisible()
+      )
+    )
+      throw new Error(JSON.stringify({ d, j, toast: !!t && t.isVisible() }));
+    return path.basename(j.outputs[0]);
+  });
+  await sleep(300);
+  await shot(W().toast, "toast.png");
+  await step(
+    "multi-select from Explorer: separate launches collected into one wheel",
+    async () => {
+      app.emit("second-instance", {}, [
+        process.execPath,
+        ...(process.defaultApp ? ["."] : []),
+        "--radial",
+        jpg,
+      ]);
+      app.emit("second-instance", {}, [
+        process.execPath,
+        ...(process.defaultApp ? ["."] : []),
+        "--radial",
+        jpg2,
+      ]);
+      app.emit("second-instance", {}, [
+        process.execPath,
+        ...(process.defaultApp ? ["."] : []),
+        "--radial",
+        jpg3,
+      ]);
+      await until(
+        () => W().radial.isVisible() && controller._files().length === 3,
+        4000,
+      );
+      await sleep(300);
+      return controller._files().length === 3 &&
+        (await js("__radial.state.count")) === 3
+        ? "3 files"
+        : false;
+    },
+  );
+  await step("Compress → Medium on the multi-selection", async () => {
+    controller._tracked.clear();
+    await js("__radial.hover(0,1)");
+    await sleep(80);
+    await js("__radial.activate(1,1)");
+    await until(() => controller._tracked.size === 3, 3000);
+    await waitJobs([...controller._tracked.keys()]);
+    const js2 = [...controller._tracked.values()];
+    return js2.length === 3 &&
+      js2.every((j) => j.status === "done" && /-compressed/.test(j.outputs[0]))
+      ? "3 outputs"
+      : false;
+  });
+  await step("mixed image + PDF: compress resolves per kind", async () => {
+    controller._tracked.clear();
+    const n = controller.runPick({ type: "compress", level: "strong" }, [
+      jpg,
+      pdfFile,
+    ]);
+    await waitJobs(n);
+    const v = [...controller._tracked.values()];
+    return v.length === 2 && v.every((j) => j.status === "done")
+      ? v.map((j) => path.basename(j.outputs[0])).join(", ")
+      : false;
+  });
+  await step("Strip metadata removes EXIF", async () => {
+    controller._tracked.clear();
+    const ids = controller.runPick(
+      { type: "tool", tool: "strip-metadata", params: {} },
+      [jpg],
+    );
+    await waitJobs(ids);
+    const j = controller._tracked.get(ids[0]);
+    const m = await sharp(j.outputs[0]).metadata();
+    return j.status === "done" && !m.exif ? "no EXIF" : false;
+  });
+  await step("Flipbook (single HTML) from 3 images", async () => {
+    controller._tracked.clear();
+    const ids = controller.runPick(
+      {
+        type: "tool",
+        tool: "make-flipbook",
+        params: { mode: "single" },
+        combine: true,
+      },
+      [jpg, jpg2, jpg3],
+    );
+    await waitJobs(ids);
+    const j = controller._tracked.get(ids[0]);
+    return j.status === "done" &&
+      /zest-flipbook/.test(fs.readFileSync(j.outputs[0], "utf8"))
+      ? path.basename(j.outputs[0])
+      : false;
+  });
+  await step("PDF wheel offers PDF tools + Reader", async () => {
+    await controller.showRadial([pdfFile]);
+    await sleep(250);
+    const ids = await js('__radial.state.items.map(i=>i.id).join(",")');
+    return /pdf/.test(ids) && /reader/.test(ids) && /flipbook/.test(ids)
+      ? ids
+      : false;
+  });
+  await js(
+    `__radial.hover(0, __radial.state.items.findIndex(i=>i.id==="pdf"))`,
+  );
+  await sleep(250);
+  await shot(W().radial, "wheel-4-pdf.png");
+  await step("folder selection expands to the files inside", async () => {
+    const files = controller.expand([dir]);
+    return files.length >= 4 ? `${files.length} files` : false;
+  });
+  await step(
+    "hotkey path shows the wheel for the given selection",
+    async () => {
+      controller.hideRadial();
+      process.env.ZEST_HOTKEY_FILES = [jpg, jpg2].join(path.delimiter);
+      await controller.onHotkey();
+      await sleep(200);
+      return W().radial.isVisible() && controller._files().length === 2;
+    },
+  );
+  await step("no selection → friendly toast instead of a wheel", async () => {
+    controller.hideRadial();
+    process.env.ZEST_HOTKEY_FILES = "";
+    const r = await controller.showRadial([]);
+    const labels = [...controller._tracked.values()].map((j) => j.label);
+    if (!(r === false && labels.some((l) => /Select files/.test(l))))
+      throw new Error(r + " " + JSON.stringify(labels));
+    return true;
+  });
+  await step("Arabic wheel", async () => {
+    controller._set({ lang: "ar" });
+    await controller.showRadial([jpg]);
+    await sleep(250);
+    await js("__radial.hover(0,1)");
+    await sleep(250);
+    const lab = await js(
+      'document.querySelector(".r1 .sl text:not(.ic)").textContent',
+    );
+    await shot(W().radial, "wheel-5-arabic.png");
+    controller._set({ lang: "en" });
+    controller.hideRadial();
+    return /[\u0600-\u06FF]/.test(lab) ? lab : false;
+  });
+  await step(
+    "hub: with the pointer on the hub it says Zest (not the last slice); on a slice it shows that slice again",
+    async () => {
+      await controller.showRadial([jpg]);
+      await sleep(400);
+      const hubName = () =>
+        js(
+          "document.querySelector('.ctr .hubtxt:not(.ghost) .t1').textContent",
+        );
+      const onSlice = await js(
+        "(() => { __radial.hover(0, 1); return document.querySelector('.ctr .hubtxt:not(.ghost) .t1').textContent; })()",
+      );
+      await sleep(150); // (read synchronously: in the test the real pointer sits on the hub, which re-asserts hubHover on the next frame)
+      await js(
+        "document.querySelector('.ctr').dispatchEvent(new MouseEvent('mouseenter'))",
+      );
+      await sleep(150);
+      const onHub = await hubName();
+      const hot = await js(
+        "document.querySelector('.ctr').classList.contains('hot')",
+      );
+      const logo = await js(
+        "!!document.querySelector('.ctr .hubtxt:not(.ghost) image')",
+      );
+      const back = await js(
+        "(() => { document.querySelector('.sl[data-level=\"0\"][data-i=\"2\"]').dispatchEvent(new MouseEvent('mouseenter')); return new Promise((r) => setTimeout(() => r(document.querySelector('.ctr .hubtxt:not(.ghost) .t1').textContent), 0)); })()",
+      );
+      controller.hideRadial("test");
+      await sleep(200);
+      if (
+        !(
+          onSlice !== "Zest" &&
+          onHub === "Zest" &&
+          hot &&
+          logo &&
+          back !== "Zest"
+        )
+      )
+        throw new Error(JSON.stringify({ onSlice, onHub, hot, logo, back }));
+      return `slice "${onSlice}" → hub "${onHub}" → slice "${back}"`;
+    },
+  );
+  await step(
+    "floating bubble: fractional drag offsets (HiDPI) do not throw, window follows the pointer",
+    async () => {
+      controller.showBubble();
+      const b = await until(
+        () => W().bubble && W().bubble.isVisible() && W().bubble,
+        5000,
+      );
+      if (!b) return false;
+      const [x0, y0] = b.getPosition();
+      const ev = { sender: b.webContents };
+      ipcMain.emit("bubble:dragstart", ev);
+      ipcMain.emit("bubble:move", ev, { dx: 10.5, dy: -3.25 });
+      ipcMain.emit("bubble:move", ev, { dx: 20.6, dy: 7.4 });
+      ipcMain.emit("bubble:moved", ev);
+      const [x1, y1] = b.getPosition();
+      controller.hideBubble();
+      await sleep(500);
+      return x1 === x0 + 21 && y1 === y0 + 7
+        ? `moved to +${x1 - x0},+${y1 - y0}`
+        : false;
+    },
+  );
+  await step("floating bubble: drop opens the wheel next to it", async () => {
+    controller.showBubble();
+    const b = await until(
+      () => W().bubble && W().bubble.isVisible() && W().bubble,
+      5000,
+    );
+    if (!b) return false;
+    await sleep(300);
+    await shot(b, "bubble.png");
+    ipcMain.emit("bubble:drop", { sender: b.webContents }, [jpg]);
+    await until(
+      () => W().radial.isVisible() && controller._files().length === 1,
+      4000,
+    );
+    const rb = W().radial.getBounds();
+    const [bx, by] = b.getPosition();
+    controller.hideBubble();
+    return Math.abs(rb.x + 360 - (bx + 44)) < 260 ? "wheel near bubble" : false;
+  });
+  await step(
+    "Open in Zest Reader hands the file to the Reader exe",
+    async () => {
+      if (!process.env.ZEST_READER_PATH) return "skipped (no reader stub)";
+      const log = process.env.ZEST_READER_STUB_LOG;
+      try {
+        fs.unlinkSync(log);
+      } catch (_) {}
+      controller.runPick({ type: "reader" }, [pdfFile]);
+      return (
+        !!(await until(
+          () =>
+            fs.existsSync(log) &&
+            fs.readFileSync(log, "utf8").includes(path.basename(pdfFile)),
+          8000,
+        )) && "stub got the file"
+      );
+    },
+  );
+  controller.hideRadial();
+  return { passed, failed, lines };
+};
