@@ -115,4 +115,4 @@ Zest's own code is released under the [MIT License](LICENSE).
 
 The released installer bundles third-party components with their own licences, including **MuPDF (AGPL-3.0)** and an **FFmpeg build (GPLv3)**. Because of this, the distributed app as a whole is also subject to those terms, and the complete source code is in this repository. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Zest is derived from the open-source project *Mamba Convert*; see [LICENSE](LICENSE) for the credit.
+

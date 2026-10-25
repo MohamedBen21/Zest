@@ -11,7 +11,7 @@
 
 ## Licence (read once)
 Your LICENSE is MIT, but the app bundles MuPDF (AGPL-3.0) and a GPLv3 FFmpeg build. Publishing the complete source publicly, as you plan, is what makes this fine. The README now says exactly that. If you ever want to ship closed source or sell it, you would need a commercial MuPDF licence from Artifex and an LGPL FFmpeg build. For legal certainty, ask a lawyer.
-Also confirm the original "Mamba Convert" repo is MIT; your LICENSE credits its author but I could not re-check the upstream licence from here.
+
 
 ## Repo settings (GitHub → Settings)
 - Description: "Offline file converter for Windows: floating bubble + right-click radial wheel. Images, video, audio, PDF, e-books."
