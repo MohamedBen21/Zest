@@ -15,8 +15,7 @@ A floating bubble and a right-click radial wheel, 100 % offline.
 
 > Drop an image, video, audio file, PDF, e-book or document onto the bubble. A pie menu opens at the bubble, you pick a format, and the converted file appears next to the original. No account, no cloud, no network. The app blocks every network request, so your files never leave the PC.
 
-<!-- Add docs/demo.gif here: bubble → drop file → wheel → converted file (10-15 s) -->
-![Demo](docs/demo.gif)
+![Zest demo: drag a photo onto the bubble, pick Convert → WEBP, done](docs/demo.gif)
 
 ## Why Zest
 - **Private by design.** FFmpeg, libvips (sharp), MuPDF and pdf-lib are bundled and run locally. Every network request from the app is blocked.
@@ -54,6 +53,15 @@ Opens maximized. Drag in many files or whole folders and pick a target format.
 - **Make flipbook:** PDFs, images, documents and e-books become a self-contained offline HTML flipbook.
 - **Tools tab:** 31 batch tools such as merge, split, compress, rotate and protect PDFs, extract audio, video to GIF and strip metadata.
 - **Edit PDF:** opens a PDF in [Zest Reader](https://github.com/MohamedBen21/zest-reader) 1.1.0 or later.
+
+## Screenshots
+| Image Studio | Video Studio |
+|---|---|
+| ![Image Studio](docs/image.png) | ![Video Studio](docs/video.png) |
+
+| 31 batch tools | The bubble and its toast |
+|---|---|
+| ![Tools](docs/tools.png) | <img src="docs/bubble.png" width="96" alt="The Zest bubble"> <br><br> ![Toast](docs/toast.png) |
 
 ## Supported conversions
 875 unique input → output pairs.

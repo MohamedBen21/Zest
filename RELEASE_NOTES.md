@@ -1,3 +1,20 @@
+**Zest 1.3.0: a new name, a floating bubble and sounds**
+
+* **New name and look.** Mohamed Convert is now **Zest**, with a new logo, the dark theme everywhere and a refreshed wheel hub. The hub shows the Zest logo and name when the pointer is on it, and the slice highlight now fades smoothly when you move between slices.
+* **New: the floating bubble.** A small square icon that stays on top of the Desktop and File Explorer windows.
+  * Drop files on it to open the wheel right at the bubble. The wheel always opens fully on screen, and the bubble returns to where you left it.
+  * Three sizes (**S / M / L**) from the hover buttons, remembered between runs.
+  * The **–** button sends it away. Bring it back from the tray icon, the tray menu, the **Zest Bubble** shortcut or **Ctrl+Alt+B** (appears at the cursor).
+  * It refuses to sit on top of desktop icons: it shakes and glides back to where it was.
+  * It runs without the main window, and can start with Windows.
+* **New: sound effects.** Short, quiet sounds for the wheel, the bubble, finished conversions and refusals. They are generated for Zest, work offline and can be turned off in the **Wheel** panel.
+* **The main window opens maximized.** Set `"startMaximized": false` in `%APPDATA%\Zest\settings.json` to turn this off.
+* **Windows installer.** The installer no longer uses the NSIS System plugin in its own steps (it crashed on Windows Server 2025 build machines), and cleans up the old "Mohamed Convert" entries.
+* **Build and CI.** FFmpeg is downloaded from several mirrors with retries, the bubble test works on small screens, and the workflow runs on Windows Server 2022.
+* **Upgrading from Mohamed Convert.** Uninstall the old app first from Windows Settings. Your settings start fresh because the app data folder is now **Zest**.
+
+---
+
 **Zest 1.3.0: Edit PDF**
 
 * **New: Edit PDF.** It opens a PDF in Zest Reader's visual editor, which needs Reader 1.1.0 or later. There you can:
