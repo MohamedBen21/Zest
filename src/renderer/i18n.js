@@ -9,6 +9,8 @@
       wheelHotkey:
         "Ctrl+Alt+M opens the wheel for the files selected in Explorer",
       wheelLogin: "Start with Windows (tray, needed for the hotkey)",
+      wheelSound: "Tactile audio feedback (clicks & chimes)",
+      searchTools: "Search tools (e.g. merge, compress, rotate)...",
       wheelWin11:
         "Windows 11: the entry is under “Show more options” (Shift+F10).",
       appName: "Zest",
@@ -259,6 +261,8 @@
       wheelBubble: "فقاعة إفلات عائمة على سطح المكتب",
       wheelHotkey: "Ctrl+Alt+M يفتح العجلة للملفات المحددة في المستكشف",
       wheelLogin: "التشغيل مع Windows (في شريط المهام، لازم للاختصار)",
+      wheelSound: "مؤثرات صوتية تفاعلية (نقرات ونغمات)",
+      searchTools: "ابحث في الأدوات (مثل الدمج، الضغط، التدوير)...",
       wheelWin11:
         "Windows 11: الخيار موجود تحت «إظهار خيارات إضافية» (Shift+F10).",
       appName: "زيست",

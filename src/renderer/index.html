@@ -12,21 +12,32 @@
     <body>
       <header class="topbar">
         <div class="brand">
-          <img class="logo" src="icon.png" alt="" />
-          <div>
-            <div class="name" data-i18n="appName"></div>
-            <div class="tag" data-i18n="tagline"></div>
+          <div class="logo-wrap">
+            <img class="logo" src="icon.png" alt="" />
           </div>
+          <span class="name" data-i18n="appName"></span>
         </div>
-        <nav class="tabs">
+        <nav class="tabs" role="tablist">
           <button
             class="tab active"
             data-tab="convert"
-            data-i18n="tabConvert"
-          ></button>
-          <button class="tab" data-tab="image" data-i18n="tabImage"></button>
-          <button class="tab" data-tab="video" data-i18n="tabVideo"></button>
-          <button class="tab" data-tab="tools" data-i18n="tabTools"></button>
+            role="tab"
+          >
+            <svg class="tab-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+            <span data-i18n="tabConvert"></span>
+          </button>
+          <button class="tab" data-tab="image" role="tab">
+            <svg class="tab-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+            <span data-i18n="tabImage"></span>
+          </button>
+          <button class="tab" data-tab="video" role="tab">
+            <svg class="tab-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
+            <span data-i18n="tabVideo"></span>
+          </button>
+          <button class="tab" data-tab="tools" role="tab">
+            <svg class="tab-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+            <span data-i18n="tabTools"></span>
+          </button>
         </nav>
         <div class="right">
           <label class="out"
@@ -48,9 +59,23 @@
         <!-- CONVERT -->
         <section id="tab-convert" class="page active">
           <div id="drop" class="drop big" tabindex="0">
-            <div class="drop-icon">⇪</div>
+            <div class="drop-illustration">
+              <svg class="cloud-icon" viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="28" class="drop-ring-glow" />
+                <path d="M20 38C16.686 38 14 35.314 14 32C14 28.94 16.282 26.417 19.238 26.046C20.126 20.355 25.042 16 31 16C37.498 16 42.84 21.037 43.187 27.42C46.993 27.973 50 31.258 50 35.25C50 39.53 46.53 43 42.25 43H22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="cloud-path" />
+                <path d="M32 26V45M32 26L25 33M32 26L39 33" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="arrow-path" />
+              </svg>
+            </div>
             <div class="drop-title" data-i18n="dropTitle"></div>
             <div class="drop-sub" data-i18n="dropSub"></div>
+            <div class="drop-pills">
+              <span class="dpill dpill-img">🖼️ Images</span>
+              <span class="dpill dpill-vid">🎬 Videos</span>
+              <span class="dpill dpill-aud">🎧 Audio</span>
+              <span class="dpill dpill-pdf">📕 PDFs</span>
+              <span class="dpill dpill-doc">📄 Docs</span>
+              <span class="dpill dpill-fb">📖 Flipbooks</span>
+            </div>
           </div>
           <div id="convertArea" class="hidden">
             <div class="row between">
@@ -659,7 +684,20 @@
 
         <!-- TOOLS -->
         <section id="tab-tools" class="page tools">
-          <aside class="toolgrid" id="toolGrid"></aside>
+          <aside class="toolgrid-sidebar">
+            <div class="tool-search-wrap">
+              <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+              <input type="search" id="toolSearch" class="tool-search" placeholder="Search 31 batch tools..." autocomplete="off" />
+            </div>
+            <div class="tool-filters" id="toolFilters">
+              <button type="button" class="tf-btn on" data-filter="all">All</button>
+              <button type="button" class="tf-btn" data-filter="pdf">PDF</button>
+              <button type="button" class="tf-btn" data-filter="video">Video</button>
+              <button type="button" class="tf-btn" data-filter="image">Image</button>
+              <button type="button" class="tf-btn" data-filter="audio">Audio</button>
+            </div>
+            <div class="toolgrid" id="toolGrid"></div>
+          </aside>
           <div class="toolpane" id="toolPane">
             <div class="empty" data-i18n="pickTool"></div>
           </div>
@@ -693,9 +731,14 @@
           ><input type="checkbox" id="wpLogin" />
           <span data-i18n="wheelLogin"></span
         ></label>
+        <label class="chk"
+          ><input type="checkbox" id="wpSound" checked />
+          <span data-i18n="wheelSound"></span>
+        </label>
         <p class="muted small" data-i18n="wheelWin11"></p>
       </div>
       <div id="toast" class="toast hidden"></div>
+      <script src="sound.js"></script>
       <script src="i18n.js"></script>
       <script src="app.js"></script>
     </body>

@@ -82,6 +82,8 @@ function applyI18n() {
   renderOutPick();
   renderConvert();
   renderSupported();
+  const sIn = $("#toolSearch");
+  if (sIn) sIn.placeholder = t("searchTools");
   renderToolGrid();
   if (Tools.current) Tools.open(Tools.current);
   renderQueue();
@@ -92,6 +94,7 @@ $$(".tab").forEach((b) =>
   b.addEventListener("click", () => showTab(b.dataset.tab)),
 );
 function showTab(name) {
+  if (typeof ZestAudio !== "undefined") ZestAudio.tab();
   $$(".tab").forEach((x) =>
     x.classList.toggle("active", x.dataset.tab === name),
   );
@@ -154,7 +157,10 @@ function dropZone(zone, onPaths, { click = true, filters } = {}) {
     const paths = [...e.dataTransfer.files]
       .map((f) => api.pathFor(f))
       .filter(Boolean);
-    if (paths.length) onPaths(paths);
+    if (paths.length) {
+      if (typeof ZestAudio !== "undefined") ZestAudio.drop();
+      onPaths(paths);
+    }
   });
   if (click)
     zone.addEventListener("click", async () => {
@@ -1447,22 +1453,64 @@ const EDIT_TOOL = {
   params: [],
   reader: true,
 };
+let toolFilter = "all";
+let toolQuery = "";
+
+const searchIn = $("#toolSearch");
+if (searchIn) {
+  searchIn.addEventListener("input", (e) => {
+    toolQuery = e.target.value.trim().toLowerCase();
+    renderToolGrid();
+  });
+}
+
+$$("#toolFilters .tf-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    $$("#toolFilters .tf-btn").forEach((b) => b.classList.toggle("on", b === btn));
+    toolFilter = btn.dataset.filter || "all";
+    if (typeof ZestAudio !== "undefined") ZestAudio.tick();
+    renderToolGrid();
+  });
+});
+
 function renderToolGrid() {
-  $("#toolGrid").replaceChildren(
-    ...[EDIT_TOOL, ...catalog.tools].map((tl) =>
-      el(
-        "button",
-        {
-          class:
-            "toolcard" +
-            (Tools.current && Tools.current.id === tl.id ? " on" : ""),
-          onclick: () => Tools.open(tl),
+  const all = [EDIT_TOOL, ...catalog.tools];
+  const filtered = all.filter((tl) => {
+    if (toolFilter !== "all") {
+      if (!tl.accepts || !tl.accepts.includes(toolFilter)) return false;
+    }
+    if (toolQuery) {
+      const name = t("tool." + tl.id).toLowerCase();
+      const id = tl.id.toLowerCase();
+      if (!name.includes(toolQuery) && !id.includes(toolQuery)) return false;
+    }
+    return true;
+  });
+
+  const cards = filtered.map((tl) =>
+    el(
+      "button",
+      {
+        class:
+          "toolcard" +
+          (Tools.current && Tools.current.id === tl.id ? " on" : ""),
+        onclick: () => {
+          if (typeof ZestAudio !== "undefined") ZestAudio.tick();
+          Tools.open(tl);
         },
-        el("span", { class: "i" }, tl.icon),
-        el("span", {}, t("tool." + tl.id)),
-      ),
+      },
+      el("span", { class: "i" }, tl.icon),
+      el("span", {}, t("tool." + tl.id)),
     ),
   );
+
+  if (cards.length) {
+    $("#toolGrid").replaceChildren(...cards);
+  } else {
+    $("#toolGrid").replaceChildren(
+      el("div", { class: "muted", style: "padding:16px;grid-column:1/-1" }, "—")
+    );
+  }
 }
 
 // ---------------- QUEUE ----------------
@@ -1496,12 +1544,14 @@ api.onJob((u) => {
     const active = Q.jobs.some(
       (j) => j.status === "queued" || j.status === "running",
     );
-    if (!active)
-      toast(
-        Q.jobs.some((j) => j.status === "error")
-          ? `⚠ ${t("error")}`
-          : `✓ ${t("done")}`,
-      );
+    if (!active) {
+      const hasError = Q.jobs.some((j) => j.status === "error");
+      if (typeof ZestAudio !== "undefined") {
+        if (hasError) ZestAudio.deny();
+        else ZestAudio.success();
+      }
+      toast(hasError ? `⚠ ${t("error")}` : `✓ ${t("done")}`);
+    }
   }
 });
 function renderJob(r) {
@@ -1643,8 +1693,9 @@ $("#wheelBtn").addEventListener("click", async (e) => {
   $("#wpBubble").checked = h.bubble;
   $("#wpHotkey").checked = h.hotkey;
   $("#wpLogin").checked = h.startAtLogin;
+  $("#wpSound").checked = S.sound !== false;
   $$("#wheelPop input").forEach(
-    (i) => (i.disabled = !h.helper && i.id !== "wpBubble"),
+    (i) => (i.disabled = !h.helper && i.id !== "wpBubble" && i.id !== "wpSound"),
   );
 });
 document.addEventListener("click", (e) => {
@@ -1660,6 +1711,13 @@ $("#wpHotkey").addEventListener("change", (e) =>
 $("#wpLogin").addEventListener("change", (e) =>
   api.helperSet({ startAtLogin: e.target.checked }),
 );
+$("#wpSound").addEventListener("change", async (e) => {
+  S = await api.setSettings({ sound: e.target.checked });
+  if (typeof ZestAudio !== "undefined") {
+    ZestAudio.enabled = e.target.checked;
+    if (e.target.checked) ZestAudio.tick();
+  }
+});
 api.onOpenFiles(async ({ paths, tab }) => {
   if (tab === "image") {
     await Img.add(paths);
@@ -1676,6 +1734,9 @@ api.onOpenFiles(async ({ paths, tab }) => {
 // ---------------- boot ----------------
 (async () => {
   S = await api.getSettings();
+  if (typeof ZestAudio !== "undefined") {
+    ZestAudio.enabled = S.sound !== false;
+  }
   catalog = await api.catalog();
   Img.init();
   Vid.init();
