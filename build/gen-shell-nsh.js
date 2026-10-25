@@ -45,7 +45,6 @@ ${exts.map((e) => `  DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociation
 ${exts.map((e) => verb(key(e))).join("\n")}
 ${verb("Software\\Classes\\Directory\\shell\\Zest")}
   CreateShortCut "$SMPROGRAMS\\Zest Bubble.lnk" "$INSTDIR\\Zest.exe" "--bubble" "$INSTDIR\\Zest.exe" 0
-  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 
 !macro customUnInstall
@@ -53,7 +52,6 @@ ${exts.map((e) => `  DeleteRegKey HKCU "${key(e)}"`).join("\n")}
   DeleteRegKey HKCU "Software\\Classes\\Directory\\shell\\Zest"
   DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "Zest"
   Delete "$SMPROGRAMS\\Zest Bubble.lnk"
-  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 `;
 fs.writeFileSync(path.join(__dirname, "installer.nsh"), out);

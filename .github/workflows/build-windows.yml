@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022 # (windows-latest is Server 2025, where the NSIS installer's System plugin crashes with 0xC0000005)
     timeout-minutes: 75
     env:
       CI: 'true'

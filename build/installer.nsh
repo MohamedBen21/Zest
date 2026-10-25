@@ -380,7 +380,6 @@
   WriteRegStr HKCU "Software\Classes\Directory\shell\Zest" "MultiSelectModel" "Player"
   WriteRegStr HKCU "Software\Classes\Directory\shell\Zest\command" "" '"$INSTDIR\Zest.exe" --radial "%1"'
   CreateShortCut "$SMPROGRAMS\Zest Bubble.lnk" "$INSTDIR\Zest.exe" "--bubble" "$INSTDIR\Zest.exe" 0
-  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 
 !macro customUnInstall
@@ -459,5 +458,4 @@
   DeleteRegKey HKCU "Software\Classes\Directory\shell\Zest"
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Zest"
   Delete "$SMPROGRAMS\Zest Bubble.lnk"
-  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
