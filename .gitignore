@@ -4,3 +4,5 @@ vendor/ffmpeg-*/
 vendor/sharp-win32-x64/
 test/work/
 test/last-results.txt
+.agents/skills/
+

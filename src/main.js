@@ -350,6 +350,7 @@ function openMain({ paths, tab } = {}) {
   createWindow();
 }
 function createWindow() {
+  const isWin = process.platform === "win32";
   win = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -358,6 +359,14 @@ function createWindow() {
     backgroundColor: "#0c0c0e",
     title: "Zest",
     icon: path.join(__dirname, "..", "build", "icon.png"),
+    titleBarStyle: isWin ? "hidden" : "default",
+    titleBarOverlay: isWin
+      ? {
+          color: "#121216",
+          symbolColor: "#d4d4d8",
+          height: 48,
+        }
+      : false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
