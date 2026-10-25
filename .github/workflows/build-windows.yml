@@ -167,7 +167,7 @@ jobs:
         timeout-minutes: 10
         run: |
           Get-Process 'Zest' -ErrorAction SilentlyContinue | Stop-Process -Force
-          Invoke-WebRequest https://github.com/heisenberg0066/zest-reader/releases/download/v1.1.0/ZestReader-Setup-1.1.0-x64.exe -OutFile "$env:RUNNER_TEMP\reader-setup.exe"
+          Invoke-WebRequest https://github.com/MohamedBen21/zest-reader/releases/download/v1.1.0/ZestReader-Setup-1.1.0-x64.exe -OutFile "$env:RUNNER_TEMP\reader-setup.exe"
           $rexe = "$env:LOCALAPPDATA\Programs\Zest Reader\Zest Reader.exe"
           for ($try = 1; $try -le 4 -and !(Test-Path $rexe); $try++) { Start-Process "$env:RUNNER_TEMP\reader-setup.exe" -ArgumentList '/S' -Wait; for ($i = 0; $i -lt 60 -and !(Test-Path $rexe); $i++) { Start-Sleep 1 } }
           if (!(Test-Path $rexe)) { throw 'Reader not installed' }

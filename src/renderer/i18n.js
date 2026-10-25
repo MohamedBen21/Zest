@@ -237,7 +237,7 @@
       "o.percent": "Percent",
       "o.": "Original",
       about:
-        "Zest — free, local-only file converter for Mohamed. Powered by FFmpeg, libvips (sharp), MuPDF, pdf-lib.",
+        "Zest — free, local-only file converter by Mohamed Benatallah. Powered by FFmpeg, libvips (sharp), MuPDF, pdf-lib.",
       supported: "Supported conversions",
       flipbook: "Flipbook",
       openBrowser: "Open in browser",
@@ -485,7 +485,7 @@
       "o.percent": "نسبة",
       "o.": "الأصلي",
       about:
-        "زيست — محوّل ملفات مجاني يعمل محلياً لمحمد. مبني على FFmpeg و libvips و MuPDF و pdf-lib.",
+        "زيست — محوّل ملفات مجاني يعمل محلياً من محمد بن عطاء الله. مبني على FFmpeg و libvips و MuPDF و pdf-lib.",
       supported: "التحويلات المدعومة",
       flipbook: "كتاب تقليب",
       openBrowser: "فتح في المتصفح",

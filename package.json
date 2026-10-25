@@ -3,7 +3,7 @@
   "productName": "Zest",
   "version": "1.3.0",
   "description": "Offline, local-only file converter and toolbox for Windows",
-  "author": "Mohamed",
+  "author": "Mohamed Benatallah",
   "license": "MIT",
   "main": "src/main.js",
   "scripts": {
@@ -30,7 +30,7 @@
   "build": {
     "appId": "com.mohamed.zest",
     "productName": "Zest",
-    "copyright": "Free for personal use",
+    "copyright": "MIT License. Copyright (c) 2026 Mohamed Benatallah",
     "directories": {
       "output": "dist",
       "buildResources": "build"

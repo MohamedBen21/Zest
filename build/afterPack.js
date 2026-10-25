@@ -35,10 +35,10 @@ exports.default = async function afterPack(ctx) {
     vi.setStringValues(l, {
       FileDescription: "Zest",
       ProductName: "Zest",
-      CompanyName: "Mohamed",
+      CompanyName: "Mohamed Benatallah",
       OriginalFilename: "Zest.exe",
       InternalName: "Zest",
-      LegalCopyright: "Free for personal use",
+      LegalCopyright: "MIT License. Copyright (c) 2026 Mohamed Benatallah",
     });
     vi.outputToResourceEntries(res.entries);
   }
