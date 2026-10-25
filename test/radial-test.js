@@ -465,7 +465,13 @@ module.exports = async ({ controller, app, E }) => {
     const rb = W().radial.getBounds();
     const [bx, by] = b.getPosition();
     controller.hideBubble();
-    return Math.abs(rb.x + 360 - (bx + 44)) < 260 ? "wheel near bubble" : false;
+    // The wheel is clamped to stay fully on screen, so on a small screen its centre can sit far from a bubble parked in a
+    // corner. What must hold: the bubble (its centre) is inside the wheel's bounds.
+    const bsz = b.getBounds();
+    const bcx = bx + bsz.width / 2,
+      bcy = by + bsz.height / 2;
+    const inside = bcx >= rb.x && bcx <= rb.x + rb.width && bcy >= rb.y && bcy <= rb.y + rb.height;
+    return inside ? "wheel near bubble" : false;
   });
   await step(
     "Open in Zest Reader hands the file to the Reader exe",
