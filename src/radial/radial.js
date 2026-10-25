@@ -263,6 +263,7 @@ function current() {
   return node;
 }
 let hoverT = null;
+let lastHoverKey = null;
 const isCurrent = (level, i) =>
   path[level] === i &&
   focusLevel === level &&
@@ -273,7 +274,12 @@ function hover(level, i) {
   clearTimeout(hoverT);
   const wasHub = hubHover;
   hubHover = false; // leaving the hub for a slice: the hub shows that slice again
-  if (!state.legacyHover && !wasHub && isCurrent(level, i)) return;
+  const hoverKey = `${level}:${i}`;
+  if (!state.legacyHover && !wasHub && isCurrent(level, i) && lastHoverKey === hoverKey) return;
+  if (typeof ZestAudio !== "undefined" && (!isCurrent(level, i) || wasHub || lastHoverKey !== hoverKey)) {
+    ZestAudio.tick();
+    lastHoverKey = hoverKey;
+  }
   hoverT = setTimeout(
     () => {
       if (!state.legacyHover && !wasHub && isCurrent(level, i)) return;
@@ -291,12 +297,14 @@ function activate(level, i) {
   path = path.slice(0, level);
   path[level] = i;
   if (it.children) {
+    if (typeof ZestAudio !== "undefined") ZestAudio.tick();
     focusLevel = level + 1;
     path[level + 1] = 0;
     render();
     return;
   }
   busy = true;
+  if (typeof ZestAudio !== "undefined") ZestAudio.confirm();
   render();
   rapi.send("radial:pick", { id: it.id, action: it.action, label: label(it) });
   close(true);
@@ -304,6 +312,10 @@ function activate(level, i) {
 function close(picked, reason) {
   if (document.body.classList.contains("closing")) return;
   document.body.classList.add("closing");
+  if (typeof ZestAudio !== "undefined") {
+    if (picked) ZestAudio.swooshOut();
+    else ZestAudio.popClose();
+  }
   setTimeout(() => {
     rapi.send("radial:close", { picked: !!picked, reason: reason || "close" });
     document.body.classList.remove("closing");
@@ -322,6 +334,7 @@ document.addEventListener("keydown", (e) => {
   const rtl = state.lang === "ar";
   if (e.key === "Escape") {
     if (focusLevel > 0) {
+      if (typeof ZestAudio !== "undefined") ZestAudio.tick();
       path = path.slice(0, focusLevel);
       focusLevel--;
       render();
@@ -333,6 +346,7 @@ document.addEventListener("keydown", (e) => {
     (e.key === (rtl ? "ArrowRight" : "ArrowLeft") && e.shiftKey)
   ) {
     if (focusLevel > 0) {
+      if (typeof ZestAudio !== "undefined") ZestAudio.tick();
       path = path.slice(0, focusLevel);
       focusLevel--;
       render();
@@ -345,12 +359,14 @@ document.addEventListener("keydown", (e) => {
     i = i == null ? 0 : (i + 1) % n;
     path = path.slice(0, focusLevel);
     path[focusLevel] = i;
+    if (typeof ZestAudio !== "undefined") ZestAudio.tick();
     render();
   } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
     e.preventDefault();
     i = i == null ? n - 1 : (i - 1 + n) % n;
     path = path.slice(0, focusLevel);
     path[focusLevel] = i;
+    if (typeof ZestAudio !== "undefined") ZestAudio.tick();
     render();
   } else if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
@@ -386,6 +402,7 @@ rapi.on("radial:show", (d) => {
   path = [];
   focusLevel = 0;
   busy = false;
+  if (typeof ZestAudio !== "undefined") ZestAudio.pop();
   document.documentElement.dir = d.lang === "ar" ? "rtl" : "ltr";
   hint.textContent = T("hint");
   if (d.preselect) {
