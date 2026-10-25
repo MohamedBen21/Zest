@@ -12,20 +12,7 @@ if (Test-Path 'node_modules\electron-builder') { Write-Host 'node_modules alread
 }
 
 Step '2/4  FFmpeg (downloaded once into vendor\ffmpeg-win)'
-$ff = 'vendor\ffmpeg-win'
-New-Item -ItemType Directory -Force $ff | Out-Null
-if (!(Test-Path "$ff\ffmpeg.exe") -or !(Test-Path "$ff\ffprobe.exe")) {
-  $zip = Join-Path $env:TEMP 'ffmpeg-essentials.zip'
-  $tmp = Join-Path $env:TEMP 'ffmpeg-essentials'
-  if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
-  Invoke-WebRequest 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile $zip
-  Expand-Archive $zip -DestinationPath $tmp
-  $bin = Get-ChildItem $tmp -Recurse -Filter ffmpeg.exe | Select-Object -First 1
-  Copy-Item $bin.FullName, (Join-Path $bin.DirectoryName 'ffprobe.exe') $ff
-  $lic = Get-ChildItem $tmp -Recurse -Filter LICENSE | Select-Object -First 1
-  if ($lic) { Copy-Item $lic.FullName $ff }
-}
-& "$ff\ffmpeg.exe" -version | Select-Object -First 1
+& "$PSScriptRoot\build\fetch-ffmpeg.ps1" -Dest 'vendor\ffmpeg-win'
 
 Step '3/4  sharp Windows binaries'
 $sharpSrc = 'node_modules\@img\sharp-win32-x64'
