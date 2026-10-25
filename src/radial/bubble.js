@@ -164,7 +164,7 @@ function playBlackHoleSuck(clientX, clientY, paths, onDone) {
     b.classList.remove("swallowing");
     if (shockwave) shockwave.classList.remove("burst");
     if (onDone) onDone();
-  }, 290);
+  }, 370);
 }
 
 ["dragenter", "dragover"].forEach((ev) =>
@@ -177,15 +177,26 @@ function playBlackHoleSuck(clientX, clientY, paths, onDone) {
   }),
 );
 document.addEventListener("dragleave", () => b.classList.remove("over"));
+rapi.on("bubble:swallow", () => {
+  b.classList.remove("swallowing");
+  void b.offsetWidth;
+  b.classList.add("swallowing");
+  if (shockwave) {
+    shockwave.classList.remove("burst");
+    void shockwave.offsetWidth;
+    shockwave.classList.add("burst");
+  }
+  if (typeof ZestAudio !== "undefined") ZestAudio.drop();
+});
+
 document.addEventListener("drop", (e) => {
   e.preventDefault();
   b.classList.remove("over");
-  const paths = [...e.dataTransfer.files]
-    .map((f) => rapi.pathFor(f))
+  const files = e.dataTransfer ? [...e.dataTransfer.files] : [];
+  const paths = files
+    .map((f) => (rapi && rapi.pathFor ? rapi.pathFor(f) : f.path) || f.path)
     .filter(Boolean);
   if (paths.length) {
-    playBlackHoleSuck(e.clientX, e.clientY, paths, () => {
-      rapi.send("bubble:drop", paths);
-    });
+    rapi.send("bubble:drop", { paths, screenX: e.screenX, screenY: e.screenY });
   }
 });

@@ -31,7 +31,9 @@ module.exports = function createController(ctx) {
   let radial = null,
     toast = null,
     bubble = null,
-    tray = null;
+    tray = null,
+    genie = null,
+    genieReady = null;
   let radialFiles = [],
     radialReady = null;
   const tracked = new Map(); // job id -> {id,label,status,progress,outputs,error}
@@ -83,6 +85,7 @@ module.exports = function createController(ctx) {
     return [...new Set(out)];
   }
   const displayAt = (pt) => screen.getDisplayNearestPoint(pt).workArea;
+  const displayBoundsAt = (pt) => screen.getDisplayNearestPoint(pt).bounds;
 
   // ---------- radial window ----------
   function ensureRadial() {
@@ -415,9 +418,245 @@ module.exports = function createController(ctx) {
     });
     showToast();
   }
+  function ensureGenie() {
+    if (genie && !genie.isDestroyed()) return genieReady;
+    genie = new BrowserWindow({
+      width: 1024,
+      height: 768,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      movable: false,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      show: false,
+      focusable: false,
+      hasShadow: false,
+      backgroundColor: "#00000000",
+      title: "Zest Genie",
+      webPreferences: webPrefs,
+    });
+    genie.setAlwaysOnTop(true, "screen-saver");
+    genie.setIgnoreMouseEvents(true);
+    genie.on("closed", () => {
+      genie = null;
+      genieReady = null;
+    });
+    genieReady = genie.loadFile(path.join(__dirname, "genie.html")).then(() => genie);
+    return genieReady;
+  }
+
+  function getGenieFileIcon(ext) {
+    const e = (ext || "").toLowerCase();
+    if (["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp", "svg", "ico"].includes(e)) return "🖼️";
+    if (["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "3gp"].includes(e)) return "🎬";
+    if (["mp3", "wav", "flac", "ogg", "m4a", "aac", "opus", "wma"].includes(e)) return "🎵";
+    if (e === "pdf") return "📕";
+    if (e === "html") return "🌐";
+    return "📄";
+  }
+
+  async function getFileThumbnailInfo(filePath) {
+    const fileName = path.basename(filePath);
+    const ext = fileName.split(".").pop().toLowerCase();
+    let thumbnail = null;
+    let textSnippet = null;
+    let sizeStr = "";
+
+    try {
+      const bytes = fs.statSync(filePath).size;
+      sizeStr = bytes > 1048576 ? (bytes / 1048576).toFixed(1) + " MB" : Math.round(bytes / 1024) + " KB";
+    } catch (_) {}
+
+    // 1. If it's an image, read directly as base64 data URL
+    if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "ico", "svg", "avif"].includes(ext)) {
+      try {
+        const buf = fs.readFileSync(filePath);
+        if (buf.length < 20 * 1024 * 1024) {
+          const mime = ext === "svg" ? "image/svg+xml" : ("image/" + (ext === "jpg" ? "jpeg" : ext));
+          thumbnail = `data:${mime};base64,${buf.toString("base64")}`;
+        }
+      } catch (_) {}
+    }
+
+    // 2. If it's a text/document/code file, read a snippet of lines
+    if (["txt", "md", "json", "csv", "js", "html", "css", "py", "xml", "log", "ts"].includes(ext)) {
+      try {
+        textSnippet = fs.readFileSync(filePath, "utf8").slice(0, 500);
+      } catch (_) {}
+    }
+
+    // 3. If no image thumbnail yet, ask Electron for the Windows high-res shell icon
+    if (!thumbnail && app.getFileIcon) {
+      try {
+        const nativeIcon = await app.getFileIcon(filePath, { size: "large" });
+        if (nativeIcon && !nativeIcon.isEmpty()) {
+          thumbnail = nativeIcon.toDataURL();
+        }
+      } catch (_) {}
+    }
+
+    return {
+      name: fileName,
+      ext,
+      icon: getGenieFileIcon(ext),
+      thumbnail,
+      textSnippet,
+      sizeStr,
+    };
+  }
+
+  async function playGenieDrop(paths, b) {
+    if (!paths || !paths.length || !alive()) return;
+    try {
+      const bCenter = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+      const bounds = displayBoundsAt(bCenter);
+      await ensureGenie();
+      genie.setBounds(bounds);
+      genie.showInactive();
+      genie.moveTop();
+
+      const cardW = 320;
+      const cardH = 200;
+      let cardX = Math.round(b.x + (b.width - cardW) / 2);
+      // Ensure vertical clearance so the macOS lamp neck has plenty of room to stretch
+      let cardY = Math.round(b.y - cardH - 60);
+      if (cardY < bounds.y + 20) {
+        cardY = Math.round(b.y + b.height + 60);
+      }
+      cardX = Math.max(bounds.x + 20, Math.min(bounds.x + bounds.width - cardW - 20, cardX));
+
+      const wGeom = {
+        x: cardX - bounds.x,
+        y: cardY - bounds.y,
+        width: cardW,
+        height: cardH,
+      };
+
+      const iGeom = {
+        x: Math.round(b.x + b.width / 2 - 18) - bounds.x,
+        y: Math.round(b.y + b.height / 2 - 18) - bounds.y,
+        width: 36,
+        height: 36,
+      };
+
+      const fileInfo = await getFileThumbnailInfo(paths[0]);
+      fileInfo.count = paths.length;
+      if (paths.length > 1) {
+        fileInfo.subtitle = `+${paths.length - 1} more files · ${fileInfo.sizeStr}`;
+      } else {
+        fileInfo.subtitle = fileInfo.sizeStr ? `${fileInfo.sizeStr} · Ready` : "";
+      }
+
+      genie.webContents.send("genie:play", {
+        isRising: false,
+        duration: 540,
+        canvasWidth: bounds.width,
+        canvasHeight: bounds.height,
+        wGeom,
+        iGeom,
+        info: fileInfo,
+      });
+
+      await new Promise((r) => {
+        const t = setTimeout(r, 680);
+        ipcMain.once("genie:done", () => {
+          clearTimeout(t);
+          r();
+        });
+      });
+
+      if (genie && !genie.isDestroyed()) genie.hide();
+      if (alive()) bubble.webContents.send("bubble:swallow");
+    } catch (err) {
+      console.error("[Zest Genie] drop error:", err);
+    }
+  }
+
+  async function playGenieOpen(filePath, action = "open") {
+    if (!filePath) return;
+    try {
+      const cursorPt = screen.getCursorScreenPoint();
+      let from;
+      if (toast && !toast.isDestroyed() && toast.isVisible()) {
+        from = toast.getBounds();
+      } else if (bubble && !bubble.isDestroyed() && bubble.isVisible()) {
+        from = bubble.getBounds();
+      } else {
+        from = { x: cursorPt.x - 20, y: cursorPt.y - 20, width: 40, height: 40 };
+      }
+
+      const bounds = displayBoundsAt({ x: from.x + from.width / 2, y: from.y + from.height / 2 });
+      await ensureGenie();
+      genie.setBounds(bounds);
+      genie.showInactive();
+      genie.moveTop();
+
+      const cardW = 340;
+      const cardH = 220;
+      const targetX = Math.round(bounds.x + (bounds.width - cardW) / 2);
+      const targetY = Math.round(bounds.y + (bounds.height - cardH) / 2);
+
+      const wGeom = {
+        x: targetX - bounds.x,
+        y: targetY - bounds.y,
+        width: cardW,
+        height: cardH,
+      };
+
+      const iGeom = {
+        x: Math.round(from.x + from.width / 2 - 20) - bounds.x,
+        y: Math.round(from.y + from.height / 2 - 20) - bounds.y,
+        width: 40,
+        height: 40,
+      };
+
+      const fileInfo = await getFileThumbnailInfo(filePath);
+      fileInfo.isOutput = true;
+      fileInfo.subtitle =
+        action === "show"
+          ? "📁 Revealing in Explorer…"
+          : fileInfo.sizeStr
+            ? `${fileInfo.sizeStr} · Complete`
+            : "✓ Complete";
+
+      genie.webContents.send("genie:play", {
+        isRising: true,
+        duration: 540,
+        canvasWidth: bounds.width,
+        canvasHeight: bounds.height,
+        wGeom,
+        iGeom,
+        info: fileInfo,
+      });
+
+      await new Promise((r) => {
+        const t = setTimeout(r, 680);
+        ipcMain.once("genie:done", () => {
+          clearTimeout(t);
+          r();
+        });
+      });
+
+      await new Promise((r) => setTimeout(r, 220));
+      if (genie && !genie.isDestroyed()) genie.hide();
+    } catch (err) {
+      console.error("[Zest Genie] open error:", err);
+    }
+
+    if (action === "show") {
+      shell.showItemInFolder(filePath);
+    } else {
+      shell.openPath(filePath);
+    }
+  }
+
   ipcMain.on("toast:close", hideToast);
-  ipcMain.on("toast:show", (_e, p) => shell.showItemInFolder(p));
-  ipcMain.on("toast:open", (_e, p) => shell.openPath(p));
+  ipcMain.on("toast:show", (_e, p) => playGenieOpen(p, "show"));
+  ipcMain.on("toast:open", (_e, p) => playGenieOpen(p, "open"));
   ipcMain.on("toast:cancel", (_e, id) => cancel(id));
   function onJobUpdate(d) {
     const j = tracked.get(d.id);
@@ -568,6 +807,7 @@ module.exports = function createController(ctx) {
     }); // a late 'closed' from an old window must not clear a newly shown bubble
     bubble.setAlwaysOnTop(true, "floating");
     bubble.loadFile(path.join(__dirname, "bubble.html"));
+    ensureGenie().catch(() => {});
     bubble.webContents.once("did-finish-load", () => {
       if (!alive() || bubble !== me) return;
       bubble.webContents.send("bubble:lang", lang());
@@ -841,11 +1081,16 @@ module.exports = function createController(ctx) {
   ipcMain.on("bubble:size", (_e, k) => setBubbleSize(k));
   // Files dropped on the bubble: the wheel opens fully inside the screen. If that means it had to shift away from the bubble, the bubble
   // rides to the wheel's hub while the wheel is open and goes back to where the user put it (its "home") when the wheel closes.
-  ipcMain.on("bubble:drop", async (_e, paths) => {
+  ipcMain.on("bubble:drop", async (_e, arg) => {
     if (!alive()) return;
+    const paths = Array.isArray(arg) ? arg : (arg && arg.paths) || [];
+    if (!paths.length) return;
     const b = bubble.getBounds(),
       h = Math.round(b.width / 2);
     const home = bubHome || { x: b.x, y: b.y };
+
+    await playGenieDrop(paths, b);
+
     const shown = await api.showRadial(paths, { x: b.x + h, y: b.y + h });
     if (!shown || !alive() || !radial || radial.isDestroyed()) return;
     bubHome = home;

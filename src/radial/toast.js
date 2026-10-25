@@ -41,7 +41,10 @@ rapi.on("toast:update", (d) => {
       const btn = (txt, ch, arg) => {
         const x = document.createElement("button");
         x.textContent = txt;
-        x.onclick = () => rapi.send(ch, arg);
+        x.onclick = () => {
+          if (typeof ZestAudio !== "undefined") ZestAudio.pop();
+          rapi.send(ch, arg);
+        };
         acts.append(x);
       };
       if (j.status === "done" && j.outputs && j.outputs.length) {

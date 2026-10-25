@@ -1554,6 +1554,284 @@ api.onJob((u) => {
     }
   }
 });
+
+function calculateLampVertexMacOS(tx, ty, p, w, i) {
+  const split = 0.3;
+  const k = p <= split ? p / split : 1.0;
+  const j = p > split ? (p - split) / (1.0 - split) : 0.0;
+
+  const expandHeight = i.y - w.y - w.height;
+  const fullHeight = i.y - w.y - expandHeight * (1.0 - k);
+  const height = fullHeight - j * fullHeight;
+
+  const y = ty * height;
+  const x =
+    tx * i.width +
+    tx * (w.width - i.width) * (1.0 - j) * (1.0 - ty) +
+    tx * (w.width - i.width) * (1.0 - k) * ty;
+
+  const offsetX = (i.x - w.x) * (y / (fullHeight + 0.1)) * k + (i.x - w.x) * j;
+  const offsetY = i.y - w.y - height - expandHeight * (1.0 - k);
+
+  const effectX =
+    (Math.sin(((height - y) / (fullHeight || 1)) * 2.0 * Math.PI + Math.PI) *
+      (w.x + w.width * tx - (i.x + i.width * tx))) /
+    7.0 *
+    k;
+
+  return {
+    x: w.x + x + offsetX + effectX,
+    y: w.y + y + offsetY,
+  };
+}
+
+function calculateLampVertex(tx, ty, p, w, i) {
+  if (i.y + i.height * 0.5 >= w.y + w.height * 0.5) {
+    return calculateLampVertexMacOS(tx, ty, p, w, i);
+  }
+  const wm = { x: w.x, y: -(w.y + w.height), width: w.width, height: w.height };
+  const im = { x: i.x, y: -(i.y + i.height), width: i.width, height: i.height };
+  const res = calculateLampVertexMacOS(tx, 1.0 - ty, p, wm, im);
+  return { x: res.x, y: -res.y };
+}
+
+function drawTexturedTriangle(c, img, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2) {
+  const delta = u0 * (v1 - v2) - v0 * (u1 - u2) + (u1 * v2 - u2 * v1);
+  if (Math.abs(delta) < 1e-4) return;
+
+  c.save();
+  c.beginPath();
+  c.moveTo(x0, y0);
+  c.lineTo(x1, y1);
+  c.lineTo(x2, y2);
+  c.closePath();
+  c.clip();
+
+  const a = (x0 * (v1 - v2) - v0 * (x1 - x2) + (x1 * v2 - x2 * v1)) / delta;
+  const b = (u0 * (x1 - x2) - x0 * (u1 - u2) + (u1 * x2 - u2 * x1)) / delta;
+  const d = (y0 * (v1 - v2) - v0 * (y1 - y2) + (y1 * v2 - y2 * v1)) / delta;
+  const e = (u0 * (y1 - y2) - y0 * (u1 - u2) + (u1 * y2 - u2 * y1)) / delta;
+  const at = (u0 * (v1 * x2 - v2 * x1) - v0 * (u1 * x2 - u2 * x1) + x0 * (u1 * v2 - u2 * v1)) / delta;
+  const bt = (u0 * (v1 * y2 - v2 * y1) - v0 * (u1 * y2 - u2 * y1) + y0 * (u1 * v2 - u2 * v1)) / delta;
+
+  c.transform(a, d, b, e, at, bt);
+  c.drawImage(img, 0, 0);
+  c.restore();
+}
+
+function createGenieCardTexture(w, h, fileName, fileIcon, statusText) {
+  const off = document.createElement("canvas");
+  off.width = w;
+  off.height = h;
+  const octx = off.getContext("2d");
+
+  const r = 14;
+  octx.save();
+  octx.beginPath();
+  octx.moveTo(r, 0);
+  octx.lineTo(w - r, 0);
+  octx.quadraticCurveTo(w, 0, w, r);
+  octx.lineTo(w, h - r);
+  octx.quadraticCurveTo(w, h, w - r, h);
+  octx.lineTo(r, h);
+  octx.quadraticCurveTo(0, h, 0, h - r);
+  octx.lineTo(0, r);
+  octx.quadraticCurveTo(0, 0, r, 0);
+  octx.closePath();
+  octx.clip();
+
+  const bgGrad = octx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, "rgba(28, 28, 36, 0.98)");
+  bgGrad.addColorStop(1, "rgba(16, 16, 22, 0.98)");
+  octx.fillStyle = bgGrad;
+  octx.fillRect(0, 0, w, h);
+
+  octx.fillStyle = "rgba(255, 255, 255, 0.05)";
+  octx.fillRect(0, 0, w, 28);
+  octx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  octx.beginPath();
+  octx.moveTo(0, 28);
+  octx.lineTo(w, 28);
+  octx.stroke();
+
+  const dotY = 14;
+  octx.beginPath();
+  octx.arc(14, dotY, 4.5, 0, Math.PI * 2);
+  octx.fillStyle = "#ff5f56";
+  octx.fill();
+
+  octx.beginPath();
+  octx.arc(28, dotY, 4.5, 0, Math.PI * 2);
+  octx.fillStyle = "#ffbd2e";
+  octx.fill();
+
+  octx.beginPath();
+  octx.arc(42, dotY, 4.5, 0, Math.PI * 2);
+  octx.fillStyle = "#27c93f";
+  octx.fill();
+
+  octx.fillStyle = "#a1a1aa";
+  octx.font = "600 11px system-ui, -apple-system, sans-serif";
+  octx.textAlign = "center";
+  octx.textBaseline = "middle";
+  octx.fillText(fileName.length > 28 ? fileName.slice(0, 26) + "…" : fileName, w / 2, dotY);
+
+  octx.font = "38px system-ui, sans-serif";
+  octx.textAlign = "center";
+  octx.textBaseline = "middle";
+  octx.fillText(fileIcon, w / 2, 74);
+
+  octx.fillStyle = "#f4f4f5";
+  octx.font = "700 13px system-ui, -apple-system, sans-serif";
+  octx.fillText(fileName.length > 26 ? fileName.slice(0, 24) + "…" : fileName, w / 2, 114);
+
+  octx.fillStyle = "#ff9a3d";
+  octx.font = "600 11px system-ui, -apple-system, sans-serif";
+  octx.fillText(statusText, w / 2, 136);
+
+  octx.strokeStyle = "rgba(255, 122, 0, 0.4)";
+  octx.lineWidth = 1.5;
+  octx.stroke();
+
+  octx.restore();
+  return off;
+}
+
+function openOutputWithGenie(btn, filePath, action = "open") {
+  const resolvedPath = filePath || (action === "folder" ? (S.outputDir || "Output") : null);
+  if (!resolvedPath) {
+    if (action === "folder") api.openOutputFolder();
+    return;
+  }
+
+  if (typeof ZestAudio !== "undefined") ZestAudio.pop();
+
+  const rect =
+    btn && btn.getBoundingClientRect
+      ? btn.getBoundingClientRect()
+      : {
+          left: window.innerWidth / 2,
+          top: window.innerHeight - 60,
+          width: 40,
+          height: 20,
+        };
+
+  const fileName = resolvedPath.split(/[\\/]/).pop() || resolvedPath;
+  const ext = fileName.split(".").pop().toLowerCase();
+
+  let fileIcon = "📄";
+  if (["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp", "svg", "ico"].includes(ext))
+    fileIcon = "🖼️";
+  else if (["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "3gp"].includes(ext))
+    fileIcon = "🎬";
+  else if (["mp3", "wav", "flac", "ogg", "m4a", "aac", "opus", "wma"].includes(ext))
+    fileIcon = "🎵";
+  else if (ext === "pdf") fileIcon = "📕";
+  else if (ext === "html") fileIcon = "🌐";
+  else if (action === "folder") fileIcon = "📁";
+
+  const statusText = action === "show" || action === "folder" ? "📁 Revealing in Explorer…" : "🚀 Opening file…";
+
+  const canvas = document.createElement("canvas");
+  canvas.className = "genie-canvas-overlay";
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  const gctx = canvas.getContext("2d", { alpha: true });
+  gctx.scale(dpr, dpr);
+  document.body.appendChild(canvas);
+
+  const cardW = 280;
+  const cardH = 170;
+  const targetX = Math.round((window.innerWidth - cardW) / 2);
+  const targetY = Math.round((window.innerHeight - cardH) / 2);
+
+  const iGeom = {
+    x: rect.left,
+    y: rect.top,
+    width: Math.max(rect.width, 24),
+    height: Math.max(rect.height, 24),
+  };
+  const wGeom = { x: targetX, y: targetY, width: cardW, height: cardH };
+
+  const texture = createGenieCardTexture(cardW, cardH, fileName, fileIcon, statusText);
+
+  const xTiles = 24;
+  const yTiles = 24;
+  const grid = Array.from({ length: yTiles + 1 }, () => Array(xTiles + 1));
+
+  const duration = 520;
+  const startTime = performance.now();
+
+  function animFrame(now) {
+    const elapsed = now - startTime;
+    const raw_p = Math.min(elapsed / duration, 1.0);
+    // Smoothstep easing: eased_p = raw_p * raw_p * (3.0 - 2.0 * raw_p)
+    const eased_p = raw_p * raw_p * (3.0 - 2.0 * raw_p);
+    // Reverse genie (restore / unfurl)
+    const t = 1.0 - eased_p;
+
+    let fade = 1.0;
+    if (t > 0.82) fade = Math.max(0.0, (1.0 - t) / 0.18);
+
+    gctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    for (let y = 0; y <= yTiles; y++) {
+      for (let x = 0; x <= xTiles; x++) {
+        const tx = x / xTiles;
+        const ty = y / yTiles;
+        grid[y][x] = calculateLampVertex(tx, ty, t, wGeom, iGeom);
+      }
+    }
+
+    gctx.save();
+    gctx.globalAlpha = fade;
+
+    const sw = wGeom.width / xTiles;
+    const sh = wGeom.height / yTiles;
+
+    for (let y = 0; y < yTiles; y++) {
+      for (let x = 0; x < xTiles; x++) {
+        const p1 = grid[y][x];
+        const p2 = grid[y][x + 1];
+        const p3 = grid[y + 1][x];
+        const p4 = grid[y + 1][x + 1];
+
+        const sx = x * sw;
+        const sy = y * sh;
+
+        drawTexturedTriangle(gctx, texture, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, sx, sy, sx + sw, sy, sx, sy + sh);
+        drawTexturedTriangle(gctx, texture, p2.x, p2.y, p4.x, p4.y, p3.x, p3.y, sx + sw, sy, sx + sw, sy + sh, sx, sy + sh);
+      }
+    }
+
+    gctx.restore();
+
+    if (raw_p < 1.0) {
+      requestAnimationFrame(animFrame);
+    } else {
+      setTimeout(async () => {
+        canvas.style.transition = "opacity 0.2s";
+        canvas.style.opacity = "0";
+        setTimeout(() => canvas.remove(), 210);
+
+        if (action === "show") {
+          api.showItem(resolvedPath);
+        } else if (action === "folder") {
+          api.openOutputFolder(filePath);
+        } else if (action === "reader") {
+          const res = await api.openInReader(resolvedPath);
+          if (!res.ok) toast(t("readerMissing"));
+        } else {
+          api.openPath(resolvedPath);
+        }
+      }, 220);
+    }
+  }
+
+  requestAnimationFrame(animFrame);
+}
+
 function renderJob(r) {
   let row = document.getElementById("job-" + r.id);
   const icon = {
@@ -1566,10 +1844,24 @@ function renderJob(r) {
   const btns = el("div", { class: "btns" });
   if (r.status === "done" && r.outputs && r.outputs.length) {
     btns.append(
-      el("button", { onclick: () => api.showItem(r.outputs[0]) }, t("show")),
       el(
         "button",
-        { onclick: () => api.openPath(r.outputs[0]) },
+        {
+          onclick: (e) =>
+            openOutputWithGenie(e.currentTarget, r.outputs[0], "show"),
+        },
+        t("show"),
+      ),
+      el(
+        "button",
+        {
+          onclick: (e) =>
+            openOutputWithGenie(
+              e.currentTarget,
+              r.outputs[0],
+              r.flip ? "browser" : "open",
+            ),
+        },
         r.flip ? t("openBrowser") : t("open"),
       ),
     );
@@ -1580,9 +1872,8 @@ function renderJob(r) {
           {
             class: readerOK ? "reader" : "reader off",
             title: readerOK ? "" : t("readerMissing"),
-            onclick: async () => {
-              const res = await api.openInReader(r.outputs[0]);
-              if (!res.ok) toast(t("readerMissing"));
+            onclick: async (e) => {
+              openOutputWithGenie(e.currentTarget, r.outputs[0], "reader");
             },
           },
           "📖 " + t("openInReader"),
@@ -1666,14 +1957,15 @@ $("#qToggle").addEventListener("click", () => {
     ? "▴"
     : "▾";
 });
-$("#qOpen").addEventListener("click", () => {
+$("#qOpen").addEventListener("click", (e) => {
   const last = Q.jobs.find(
     (j) => j.status === "done" && j.outputs && j.outputs.length,
   );
   if (S.outputMode === "folder" && S.outputDir)
-    api.openOutputFolder(S.outputDir);
-  else if (last) api.showItem(last.outputs[0]);
-  else api.openOutputFolder();
+    openOutputWithGenie(e.currentTarget, S.outputDir, "folder");
+  else if (last)
+    openOutputWithGenie(e.currentTarget, last.outputs[0], "show");
+  else openOutputWithGenie(e.currentTarget, null, "folder");
 });
 
 let readerOK = false;
