@@ -40,7 +40,7 @@ Right-click a supported file, a multi-selection or a folder in File Explorer and
 |---|---|---|---|
 | ![](docs/wheel-1-inner.png) | ![](docs/wheel-2-convert.png) | ![](docs/wheel-3-nested.png) | ![](docs/wheel-5-arabic.png) |
 
-- The inner ring shows only what fits your files: Convert, Compress, Edit, Flipbook, PDF tools, Audio/Video tools, Strip metadata and Open in Zest Reader.
+- The inner ring shows only what fits your files: Convert, Compress, Edit, Flipbook, PDF tools, Audio/Video tools, and Strip metadata.
 - The wheel always opens fully on screen. Hover or click to expand rings; use ← → Enter Backspace Esc or the keys 1–9.
 - A small toast shows progress with **Show in folder** and **Open**. Existing files are never overwritten (`name (1).ext`).
 - Subtle, optional **sound effects** (popups, slice changes, drop, success). Turn them off in the **Wheel** panel.
@@ -52,7 +52,6 @@ Opens maximized. Drag in many files or whole folders and pick a target format.
 - **Video Studio:** trim timeline, crop, resolutions up to 4K, FPS, CRF, bitrate or target size in MB (2-pass), speed, mute, loudness normalization, GIF/WebP and audio output.
 - **Make flipbook:** PDFs, images, documents and e-books become a self-contained offline HTML flipbook.
 - **Tools tab:** 31 batch tools such as merge, split, compress, rotate and protect PDFs, extract audio, video to GIF and strip metadata.
-- **Edit PDF:** opens a PDF in [Zest Reader](https://github.com/MohamedBen21/zest-reader) 1.1.0 or later.
 
 ## Screenshots
 | Image Studio | Video Studio |
