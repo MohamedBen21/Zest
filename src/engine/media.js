@@ -343,7 +343,13 @@ async function convert(file, fmt, o = {}, { onProgress, signal } = {}) {
   ];
   if (twoPass) {
     const td = await tmpDir();
-    const log = path.join(td, "pass");
+    // Long (non-8.3) path with forward slashes: newer FFmpeg builds fail to
+    // open the pass log when given RUNNER~1-style short names on Windows.
+    let tdReal = td;
+    try {
+      tdReal = require("fs").realpathSync.native(td);
+    } catch (_) {}
+    const log = path.join(tdReal, "pass").replace(/\\/g, "/");
     try {
       await ffmpeg(
         [

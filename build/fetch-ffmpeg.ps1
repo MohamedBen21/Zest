@@ -6,9 +6,9 @@ New-Item -ItemType Directory -Force $Dest | Out-Null
 if ((Test-Path "$Dest/ffmpeg.exe") -and (Test-Path "$Dest/ffprobe.exe")) { Write-Host 'FFmpeg already present.'; return }
 
 $sources = @(
-  'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip',
+  'https://github.com/GyanD/codexffmpeg/releases/download/7.1.1/ffmpeg-7.1.1-essentials_build.zip',
   'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
-  'https://github.com/GyanD/codexffmpeg/releases/download/7.1.1/ffmpeg-7.1.1-essentials_build.zip'
+  'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
 )
 $zip = Join-Path ([IO.Path]::GetTempPath()) 'ffmpeg-download.zip'
 $tmp = Join-Path ([IO.Path]::GetTempPath()) 'ffmpeg-download'
